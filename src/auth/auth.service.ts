@@ -2,6 +2,8 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,7 +14,7 @@ import {
   UserSession,
   SessionAction,
 } from '../user-session/user-session.entity';
-import { SignupDto, LoginDto } from './dto/auth.dto';
+import { SignupDto, LoginDto, UpdateUserDto } from './dto/auth.dto';
 import { AuthResponse, JwtPayload } from './interfaces/auth.interface';
 
 @Injectable()
@@ -89,6 +91,55 @@ export class AuthService {
 
     return {
       message: 'Logout successful',
+    };
+  }
+
+  async updateUser(
+    userId: number,
+    updateUserDto: UpdateUserDto,
+  ): Promise<AuthResponse> {
+    const { email, password } = updateUserDto;
+
+    // Validate that at least one field is provided for update
+    if (!email && !password) {
+      throw new BadRequestException(
+        'At least one field (email or password) must be provided for update',
+      );
+    }
+
+    // Find the user first
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if email is being updated and if it already exists
+    if (email && email !== user.email) {
+      const existingUser = await this.userRepository.findOne({
+        where: { email },
+      });
+
+      if (existingUser) {
+        throw new ConflictException('User with this email already exists');
+      }
+
+      user.email = email;
+    }
+
+    // Hash password if it's being updated
+    if (password) {
+      const saltRounds = 12;
+      user.passwordHash = await bcrypt.hash(password, saltRounds);
+    }
+
+    // Save the updated user
+    await this.userRepository.save(user);
+
+    return {
+      message: 'User updated successfully',
     };
   }
 

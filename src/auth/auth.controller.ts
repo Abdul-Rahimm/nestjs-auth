@@ -1,12 +1,15 @@
 import {
   Controller,
   Post,
+  Patch,
   Body,
+  Param,
   UseGuards,
   ValidationPipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { SignupDto, LoginDto } from './dto/auth.dto';
+import { SignupDto, LoginDto, UpdateUserDto } from './dto/auth.dto';
 import { AuthResponse } from './interfaces/auth.interface';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GetUser } from './decorators/get-user.decorator';
@@ -33,5 +36,14 @@ export class AuthController {
     @GetUser() user: { userId: number; email: string },
   ): Promise<AuthResponse> {
     return this.authService.logout(user.userId);
+  }
+
+  @Patch('update/:id')
+  // @UseGuards(JwtAuthGuard)
+  async updateUser(
+    @Param('id', ParseIntPipe) userId: number,
+    @Body(ValidationPipe) updateUserDto: UpdateUserDto,
+  ): Promise<AuthResponse> {
+    return this.authService.updateUser(userId, updateUserDto);
   }
 }
