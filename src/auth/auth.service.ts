@@ -38,12 +38,12 @@ export class AuthService {
       throw new ConflictException('User with this email already exists');
     }
 
-    // const saltRounds = 12;
-    // const passwordHash = await bcrypt.hash(password, saltRounds);
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
 
     const user = this.userRepository.create({
       email,
-      passwordHash: password,
+      passwordHash,
     });
 
     await this.userRepository.save(user);
