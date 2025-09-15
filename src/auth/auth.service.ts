@@ -16,6 +16,7 @@ import {
 } from '../user-session/user-session.entity';
 import { SignupDto, LoginDto, UpdateUserDto } from './dto/auth.dto';
 import { AuthResponse, JwtPayload } from './interfaces/auth.interface';
+import { Role } from './enums/roles.enum';
 
 @Injectable()
 export class AuthService {
@@ -75,6 +76,7 @@ export class AuthService {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
+      role: user.role,
       createdAt: user.createdAt.toISOString(),
     };
 
@@ -141,6 +143,37 @@ export class AuthService {
 
     return {
       message: 'User updated successfully',
+    };
+  }
+
+  async getAllUsers(): Promise<any> {
+    const users = await this.userRepository.find({
+      select: ['id', 'email', 'role', 'createdAt'],
+    });
+
+    return {
+      message: 'Users retrieved successfully',
+      users,
+    };
+  }
+
+  async deleteUser(userId: number): Promise<AuthResponse> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Delete related user sessions first
+    await this.userSessionRepository.delete({ userId });
+
+    // Delete the user
+    await this.userRepository.remove(user);
+
+    return {
+      message: 'User deleted successfully',
     };
   }
 
